@@ -4,117 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do 리스트</title>
-    <!-- TODO웹앱을 gpt를 통해서 만듬 
-    1. 주제 선정을 질문: '오늘의 할일 목표라는 제목으로 TODO앱을 만들줘' 
-    2. 디자인입히기 : 파스텔 색상 배경과 세련된 디자인. 전체 가운데 정렬, 헤더에 제목을 넣고 푸터에 'by runbuild'라고 표시
-    3. 기능 : 할일을 저장하면 할일 목록에 체크박스와 날짜, 삭제 버튼을 한줄로 표시
-    4. 라이브러리를 : 평소의 css 파일을 만드는 수동적인 방법이 아닌 라이브러리를 빌려서 만드는 방식을 선택
-                     팝업창과 디자인 라이브러리 사용 
-    
-    -->
-
-
-
-
-    <!-- Tailwind CSS 링크 (스타일링을 위한 외부 CSS 프레임워크) -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    
-    <!-- Google Material Icons 링크 (아이콘 사용을 위한 구글 아이콘 폰트) -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    
-    <!-- 로컬 스타일링 파일 (styles.css) -->
-    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-purple-100 flex flex-col items-center justify-center min-h-screen font-sans">
-    <!-- 헤더 영역: To-Do 리스트 제목 -->
-    <header class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-700">To-Do 리스트</h1>
+<body class="bg-gradient-to-r from-purple-200 to-blue-200 flex flex-col items-center justify-center min-h-screen font-sans p-4">
+    <header class="mb-6 text-center">
+        <h1 class="text-3xl font-bold text-gray-800">📌 To-Do 리스트</h1>
     </header>
     
-    <!-- 메인 콘텐츠 영역: 할 일 추가 및 목록 보기 -->
-    <div class="container bg-white p-6 rounded-lg shadow-md w-96">
-        <!-- 할 일 입력 폼: 텍스트 입력창과 추가 버튼 -->
-        <div class="mb-4 flex">
-            <input type="text" id="taskInput" class="flex-1 p-2 border rounded-md" placeholder="할 일을 입력하세요...">
-            <button id="addTaskBtn" class="ml-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">추가</button>
+    <div class="container bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div class="mb-4">
+            <input type="text" id="taskInput" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="할 일을 입력하세요...">
+            <label for="taskDate" class="block mt-3 text-gray-700 font-medium">📅 언제까지 완료할까요?</label>
+            <input type="date" id="taskDate" class="w-full p-3 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <button id="addTaskBtn" class="w-full mt-3 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition duration-300">✅ 추가</button>
         </div>
         
-        <!-- 할 일 목록을 보여줄 <ul> 요소 -->
-        <ul id="taskList" class="space-y-2"></ul>
+        <h2 class="text-lg font-bold text-gray-700 mt-6">📋 할 일 목록</h2>
+        <ul id="taskList" class="space-y-3 mt-2"></ul>
     </div>
     
-    <!-- 푸터 영역: 저작권 정보 -->
     <footer class="mt-6 text-gray-600 text-sm">by runbulid</footer>
     
-    <!-- 팝업창 -->
-    <div id="popup" class="popup fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center hidden">
-        <div class="popup-content bg-white p-6 rounded-lg shadow-lg w-96">
-            <p class="text-center text-lg text-gray-700">할 일이 추가되었습니다!</p>
-            <button id="closePopupBtn" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700">닫기</button>
-        </div>
-    </div>
-
     <script>
-        // DOM이 로드된 후 실행될 코드
         document.addEventListener("DOMContentLoaded", function () {
-            const taskInput = document.getElementById("taskInput"); // 할 일 입력창
-            const addTaskBtn = document.getElementById("addTaskBtn"); // 추가 버튼
-            const taskList = document.getElementById("taskList"); // 할 일 목록
-            const popup = document.getElementById("popup"); // 팝업창
-            const closePopupBtn = document.getElementById("closePopupBtn"); // 팝업 닫기 버튼
-
-            // 추가 버튼 클릭 시 실행되는 함수
+            const taskInput = document.getElementById("taskInput");
+            const taskDate = document.getElementById("taskDate");
+            const addTaskBtn = document.getElementById("addTaskBtn");
+            const taskList = document.getElementById("taskList");
+            
+            // 오늘 날짜 이전 선택 방지
+            const today = new Date().toISOString().split("T")[0];
+            taskDate.setAttribute("min", today);
+            
             addTaskBtn.addEventListener("click", function () {
-                // 입력 값이 비어있으면 아무 것도 하지 않음
-                if (taskInput.value.trim() === "") return;
+                if (taskInput.value.trim() === "" || taskDate.value === "") return;
                 
-                // 새로운 <li> 요소 생성 (할 일 항목)
                 const li = document.createElement("li");
-                li.classList.add("flex", "items-center", "justify-between", "p-2", "border", "rounded-md", "bg-gray-100");
+                li.classList.add("flex", "items-center", "justify-between", "p-3", "border", "rounded-lg", "bg-gray-100", "shadow-sm");
                 
-                // 체크박스 생성
                 const checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
-                checkbox.classList.add("mr-2");
+                checkbox.classList.add("mr-3", "cursor-pointer");
                 
-                // 할 일 텍스트 생성
                 const taskText = document.createElement("span");
                 taskText.textContent = taskInput.value;
+                taskText.classList.add("flex-1", "text-gray-800");
                 
-                // 현재 날짜 생성
                 const dateSpan = document.createElement("span");
-                const currentDate = new Date().toLocaleDateString(); // 날짜 형식: YYYY/MM/DD
-                dateSpan.textContent = currentDate;
-                dateSpan.classList.add("text-sm", "text-gray-500", "ml-2");
+                dateSpan.textContent = `📅 ${taskDate.value}`;
+                dateSpan.classList.add("text-sm", "text-gray-500", "ml-3");
                 
-                // 삭제 버튼 생성 (아이콘 포함)
                 const deleteBtn = document.createElement("button");
-                deleteBtn.innerHTML = "<span class='material-icons text-red-500'>delete</span>";
-                deleteBtn.classList.add("delete-btn");
+                deleteBtn.innerHTML = "<span class='material-icons text-red-500 cursor-pointer'>delete</span>";
                 deleteBtn.addEventListener("click", function () {
-                    // 삭제 버튼 클릭 시 해당 할 일 항목 삭제
                     taskList.removeChild(li);
                 });
                 
-                // <li>에 체크박스, 텍스트, 날짜, 삭제 버튼 추가
                 li.appendChild(checkbox);
                 li.appendChild(taskText);
                 li.appendChild(dateSpan);
                 li.appendChild(deleteBtn);
                 
-                // 할 일 목록에 새 항목 추가
                 taskList.appendChild(li);
                 
-                // 입력창 초기화
                 taskInput.value = "";
-
-                // 팝업창 표시
-                popup.classList.remove("hidden");
-            });
-
-            // 팝업 닫기 버튼 클릭 시 팝업창 닫기
-            closePopupBtn.addEventListener("click", function () {
-                popup.classList.add("hidden");
+                taskDate.value = "";
             });
         });
     </script>
