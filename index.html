@@ -4,8 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do 리스트</title>
+    <!-- TailwindCSS 및 Material Icons 로드 -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* 완료된 할 일에 적용할 스타일 (취소선, 회색, 투명도 조정) */
+        .completed {
+            text-decoration: line-through;
+            color: gray;
+            opacity: 0.6;
+            transition: all 0.3s ease-in-out;
+        }
+        /* 날짜 입력 필드의 캘린더 아이콘 스타일 */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
+            cursor: pointer;
+        }
+        /* 모달 창 스타일 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5); /* 배경 흐림 효과 */
+            display: none; /* 처음엔 보이지 않도록 설정 */
+            justify-content: center; /* 화면 중앙 정렬 */
+            align-items: center;
+        }
+        /* 모달 내용 부분 스타일 */
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-r from-purple-200 to-blue-200 flex flex-col items-center justify-center min-h-screen font-sans p-4">
     <header class="mb-6 text-center">
@@ -14,62 +50,120 @@
     
     <div class="container bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="mb-4">
+            <!-- 할 일 입력 필드 -->
             <input type="text" id="taskInput" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="할 일을 입력하세요...">
-            <label for="taskDate" class="block mt-3 text-gray-700 font-medium">📅 언제까지 완료할까요?</label>
-            <input type="date" id="taskDate" class="w-full p-3 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <label for="taskDate" class="block mt-3 text-gray-800 font-bold text-lg">📅 언제까지 완료할까요?</label>
+            <!-- 날짜 선택 필드 -->
+            <div class="relative">
+                <input type="date" id="taskDate" class="w-full p-3 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-800">
+            </div>
+            <!-- 할 일 추가 버튼 -->
             <button id="addTaskBtn" class="w-full mt-3 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition duration-300">✅ 추가</button>
         </div>
         
-        <h2 class="text-lg font-bold text-gray-700 mt-6">📋 할 일 목록</h2>
+        <h2 class="text-lg font-bold text-gray-800 mt-6">📋 List</h2>
+        <!-- 할 일 리스트 출력 부분 -->
         <ul id="taskList" class="space-y-3 mt-2"></ul>
+    </div>
+
+    <!-- 삭제 확인 모달 팝업 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-xl text-gray-800">할 일을 삭제하시겠습니까?</h2>
+            <div class="mt-4">
+                <!-- 삭제 확인 버튼 -->
+                <button id="confirmDelete" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300">삭제</button>
+                <!-- 삭제 취소 버튼 -->
+                <button id="cancelDelete" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-300 ml-4">취소</button>
+            </div>
+        </div>
     </div>
     
     <footer class="mt-6 text-gray-600 text-sm">by runbulid</footer>
     
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            // HTML 요소들 변수에 저장
             const taskInput = document.getElementById("taskInput");
             const taskDate = document.getElementById("taskDate");
             const addTaskBtn = document.getElementById("addTaskBtn");
             const taskList = document.getElementById("taskList");
-            
-            // 오늘 날짜 이전 선택 방지
+            const modal = document.getElementById("modal");
+            const confirmDeleteBtn = document.getElementById("confirmDelete");
+            const cancelDeleteBtn = document.getElementById("cancelDelete");
+            let taskToDelete = null; // 삭제할 항목 저장 변수
+
+            // 오늘 날짜를 최소 날짜로 설정
             const today = new Date().toISOString().split("T")[0];
             taskDate.setAttribute("min", today);
-            
+
+            // "추가" 버튼 클릭 시 할 일 추가
             addTaskBtn.addEventListener("click", function () {
+                // 입력값이 비어 있으면 추가하지 않음
                 if (taskInput.value.trim() === "" || taskDate.value === "") return;
-                
+
+                // 새로운 할 일 항목 생성
                 const li = document.createElement("li");
                 li.classList.add("flex", "items-center", "justify-between", "p-3", "border", "rounded-lg", "bg-gray-100", "shadow-sm");
-                
+
                 const checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
                 checkbox.classList.add("mr-3", "cursor-pointer");
-                
+
                 const taskText = document.createElement("span");
                 taskText.textContent = taskInput.value;
-                taskText.classList.add("flex-1", "text-gray-800");
-                
+                taskText.classList.add("flex-1", "text-gray-800", "transition-all", "duration-300");
+
                 const dateSpan = document.createElement("span");
                 dateSpan.textContent = `📅 ${taskDate.value}`;
                 dateSpan.classList.add("text-sm", "text-gray-500", "ml-3");
-                
+
                 const deleteBtn = document.createElement("button");
                 deleteBtn.innerHTML = "<span class='material-icons text-red-500 cursor-pointer'>delete</span>";
                 deleteBtn.addEventListener("click", function () {
-                    taskList.removeChild(li);
+                    taskToDelete = li; // 삭제할 항목 저장
+                    modal.style.display = "flex"; // 모달 보이기
                 });
-                
+
+                // 체크박스를 클릭하면 완료 표시
+                checkbox.addEventListener("change", function () {
+                    if (checkbox.checked) {
+                        taskText.classList.add("completed");
+                    } else {
+                        taskText.classList.remove("completed");
+                    }
+                });
+
+                // 할 일 항목을 리스트에 추가
                 li.appendChild(checkbox);
                 li.appendChild(taskText);
                 li.appendChild(dateSpan);
                 li.appendChild(deleteBtn);
-                
+
                 taskList.appendChild(li);
-                
+
+                // 입력 필드 초기화
                 taskInput.value = "";
                 taskDate.value = "";
+
+                // 추가 후 팝업 알림
+                alert("List에 추가하였습니다.");
+            });
+
+            // 삭제 확인 버튼 클릭 시
+            confirmDeleteBtn.addEventListener("click", function () {
+                if (taskToDelete) {
+                    taskList.removeChild(taskToDelete); // 항목 삭제
+                    taskToDelete = null;
+                    modal.style.display = "none"; // 모달 숨기기
+                    alert("할 일이 삭제되었습니다.");
+                }
+            });
+
+            // 삭제 취소 버튼 클릭 시
+            cancelDeleteBtn.addEventListener("click", function () {
+                taskToDelete = null;
+                modal.style.display = "none"; // 모달 숨기기
             });
         });
     </script>
